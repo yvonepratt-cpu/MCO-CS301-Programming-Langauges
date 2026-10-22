@@ -1,6 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JavaScript Calculator</title>
 
     <style>
@@ -54,6 +56,7 @@
             border: 1px solid #999;
             border-radius: 5px;
             cursor: pointer;
+            transition: background 0.2s, color 0.2s;
         }
 
         button:hover {
@@ -62,6 +65,15 @@
 
         button:active {
             background: #ddd;
+        }
+
+        /* Color stays on the last clicked button */
+        button.selected,
+        button.selected:hover,
+        button.selected:active {
+            background: #4CAF50;
+            color: white;
+            border: 1px solid #388E3C;
         }
 
         .zero {
@@ -76,11 +88,7 @@
 
     <h2>Calculator</h2>
 
-    <input
-        type="text"
-        id="display"
-        readonly
-    >
+    <input type="text" id="display" readonly>
 
     <div class="buttons">
 
@@ -113,9 +121,7 @@
         <button onclick="add('.')">.</button>
 
     </div>
-
 </div>
-
 
 <script>
 
@@ -123,101 +129,28 @@
 
     let justCalculated = false;
 
+    // Remember the last clicked button
+    let selectedButton = null;
 
-    // =========================================================
-    // ADD NUMBER OR OPERATOR
-    // =========================================================
-    function add(value) {
+    // Change the color of the clicked button
+    document.querySelectorAll(".buttons button").forEach(button => {
+        button.addEventListener("click", function() {
 
-        // If the previous action was "="
-        // and the user enters a number or decimal,
-        // start a new calculation.
-        if (
-            justCalculated &&
-            !isOperator(value)
-        ) {
-            display.value = "";
-        }
-
-        justCalculated = false;
-
-
-        // -----------------------------------------------------
-        // OPERATOR CONTROL
-        // -----------------------------------------------------
-        if (isOperator(value)) {
-
-            // Allow negative number at the beginning
-            if (display.value === "") {
-
-                if (value === "-") {
-                    display.value = "-";
-                }
-
-                return;
+            // Remove the color from the previous button
+            if (selectedButton !== null) {
+                selectedButton.classList.remove("selected");
             }
 
+            // Color the newly clicked button
+            this.classList.add("selected");
 
-            let lastCharacter =
-                display.value.charAt(
-                    display.value.length - 1
-                );
+            // Remember the selected button
+            selectedButton = this;
+        });
+    });
 
-
-            // Replace previous operator
-            if (isOperator(lastCharacter)) {
-
-                display.value =
-                    display.value.slice(0, -1) + value;
-
-                return;
-            }
-        }
-
-
-        // -----------------------------------------------------
-        // DECIMAL CONTROL
-        // -----------------------------------------------------
-        if (value === ".") {
-
-            let parts =
-                display.value.split(/[+\-*/]/);
-
-            let currentNumber =
-                parts[parts.length - 1];
-
-
-            // Do not allow:
-            // 10.5.6
-            if (currentNumber.includes(".")) {
-                return;
-            }
-
-
-            // If decimal is first:
-            // .5 becomes 0.5
-            if (
-                display.value === "" ||
-                isOperator(
-                    display.value.charAt(
-                        display.value.length - 1
-                    )
-                )
-            ) {
-                display.value += "0";
-            }
-        }
-
-
-        display.value += value;
-    }
-
-
-    // =========================================================
-    // CHECK OPERATOR
-    // =========================================================
+    // Check whether a character is an operator
     function isOperator(value) {
-
         return (
             value === "+" ||
             value === "-" ||
@@ -226,136 +159,143 @@
         );
     }
 
+    // Add a number, decimal, or operator
+    function add(value) {
 
-    // =========================================================
-    // CLEAR
-    // =========================================================
+        // Start a new calculation after pressing equals
+        // when the user enters a number or decimal
+        if (justCalculated && !isOperator(value)) {
+            display.value = "";
+        }
+
+        justCalculated = false;
+
+        // Handle mathematical operators
+        if (isOperator(value)) {
+
+            // Allow a negative number at the beginning
+            if (display.value === "") {
+                if (value === "-") {
+                    display.value = "-";
+                }
+                return;
+            }
+
+            let lastCharacter = display.value.charAt(
+                display.value.length - 1
+            );
+
+            // Replace the previous operator
+            if (isOperator(lastCharacter)) {
+                display.value =
+                    display.value.slice(0, -1) + value;
+                return;
+            }
+        }
+
+        // Handle decimal points
+        if (value === ".") {
+
+            let parts = display.value.split(/[+\-*/]/);
+            let currentNumber = parts[parts.length - 1];
+
+            // Prevent multiple decimals in one number
+            if (currentNumber.includes(".")) {
+                return;
+            }
+
+            // Add zero before a decimal point when needed
+            if (
+                display.value === "" ||
+                isOperator(
+                    display.value.charAt(display.value.length - 1)
+                )
+            ) {
+                display.value += "0";
+            }
+        }
+
+        display.value += value;
+    }
+
+    // Clear the calculator display
     function clearDisplay() {
-
         display.value = "";
-
         justCalculated = false;
     }
 
-
-    // =========================================================
-    // BACKSPACE
-    // =========================================================
+    // Remove the last character
     function backspace() {
-
-        display.value =
-            display.value.slice(0, -1);
-
+        display.value = display.value.slice(0, -1);
         justCalculated = false;
     }
 
-
-    // =========================================================
-    // CALCULATE
-    // =========================================================
+    // Calculate the answer
     function calculate() {
 
-        let expression =
-            display.value;
+        let expression = display.value;
 
-
+        // Do nothing if the display is empty
         if (expression === "") {
             return;
         }
 
-
-        // Don't calculate:
-        // 10+
-        // 10*
-        // 10/
+        // Do not calculate if the expression ends with an operator
         if (
-            isOperator(
-                expression.charAt(
-                    expression.length - 1
-                )
-            )
+            isOperator(expression.charAt(expression.length - 1))
         ) {
             return;
         }
 
-
         try {
+            let answer = eval(expression);
 
-            let answer =
-                eval(expression);
-
-
+            // Prevent invalid results such as division by zero
             if (!Number.isFinite(answer)) {
-                throw new Error();
+                throw new Error("Invalid calculation");
             }
 
-
-            display.value =
-                answer;
-
+            // Display the answer, including decimals when needed
+            display.value = answer;
 
             justCalculated = true;
 
-        }
-        catch (error) {
-
-            display.value =
-                "Error";
-
+        } catch (error) {
+            display.value = "Error";
             justCalculated = true;
         }
     }
 
+    // Support keyboard input
+    document.addEventListener("keydown", function(event) {
 
-    // =========================================================
-    // KEYBOARD SUPPORT
-    // =========================================================
-    document.addEventListener(
-        "keydown",
-        function(event) {
+        let key = event.key;
 
-            let key = event.key;
-
-
-            if (
-                key >= "0" &&
-                key <= "9"
-            ) {
-                add(key);
-            }
-
-            else if (key === ".") {
-                add(".");
-            }
-
-            else if (
-                key === "+" ||
-                key === "-" ||
-                key === "*" ||
-                key === "/"
-            ) {
-                add(key);
-            }
-
-            else if (
-                key === "Enter" ||
-                key === "="
-            ) {
-                calculate();
-            }
-
-            else if (key === "Backspace") {
-                backspace();
-            }
-
-            else if (
-                key === "Escape" ||
-                key === "Delete"
-            ) {
-                clearDisplay();
-            }
+        if (key >= "0" && key <= "9") {
+            add(key);
         }
-    );
+        else if (key === ".") {
+            add(".");
+        }
+        else if (
+            key === "+" ||
+            key === "-" ||
+            key === "*" ||
+            key === "/"
+        ) {
+            add(key);
+        }
+        else if (key === "Enter" || key === "=") {
+            event.preventDefault();
+            calculate();
+        }
+        else if (key === "Backspace") {
+            backspace();
+        }
+        else if (key === "Escape" || key === "Delete") {
+            clearDisplay();
+        }
+    });
 
 </script>
 
